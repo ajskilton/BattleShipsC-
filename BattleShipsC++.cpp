@@ -5,6 +5,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <iostream>
+#include <list>
+#include "AiBot.h"
+
+using namespace std;
 
 #define MAP_SIZE 6
 #define HIT 1000
@@ -19,93 +24,6 @@ int IsShipValid(int size, int map[MAP_SIZE][MAP_SIZE]);
 void InitialiseRandomMap(int map[MAP_SIZE][MAP_SIZE]);
 void FireShot(int shots[MAP_SIZE][MAP_SIZE], int map[MAP_SIZE][MAP_SIZE], int row, int col);
 int CheckGameOver(int shots[MAP_SIZE][MAP_SIZE], int map[MAP_SIZE][MAP_SIZE]);
-
-/*
-* GodBot Class
-*/
-
-class GodBot {
-private:
-	int prevShots[MAP_SIZE][MAP_SIZE];
-	int prevRow;
-	int prevCol;
-
-public:
-	GodBot(int shots[MAP_SIZE][MAP_SIZE]) {
-		for (int i = 0; i < MAP_SIZE; ++i) {
-			for (int j = 0; j < MAP_SIZE; ++j) {
-				prevShots[i][j] = shots[i][j];
-			}
-		}
-	}
-
-	void getMoveGodBot(int shots[MAP_SIZE][MAP_SIZE], int* row, int* col) {
-
-		int rand_row;
-		int rand_col;
-
-		if (prevMoveHit(shots) || ) {
-			int rand_dir = rand() % 4;
-			// check around prev move
-			getNextShot(prevRow, prevCol, rand_dir, shots, row, col);
-			return;
-
-		}
-		else {
-
-			do {
-				rand_row = shots[0][0]; // to prevent compiler warning (because otherwise "shots" array is not accessed)
-				rand_row = rand() % MAP_SIZE;
-				rand_col = rand() % MAP_SIZE;
-			} while (shots[rand_row][rand_col] > 0);
-
-			*row = rand_row;
-			prevRow = rand_row;
-			*col = rand_col;
-			prevCol = rand_col;
-		}
-	}
-
-	bool prevMoveHit(int shots[MAP_SIZE][MAP_SIZE]) {
-		if (CountValues(HIT, prevShots) < CountValues(HIT, shots)) {
-			return true;
-		}
-
-		return false;
-	}
-
-	void getNextShot(int prevRow, int prevCol, int rand_dir, int shots[MAP_SIZE][MAP_SIZE], int* row, int* col) {
-		switch (rand_dir) {
-		case 0: // up
-			if (prevRow - 1 >= 0 && shots[prevRow - 1][prevCol] == 0) {
-				*row = prevRow - 1;
-				*col = prevCol;
-				break;
-			}
-		case 1: // down
-			if (prevRow + 1 < MAP_SIZE && shots[prevRow + 1][prevCol] == 0) {
-				*row = prevRow + 1;
-				*col = prevCol;
-				break;
-			}
-		case 2: // left
-			if (prevCol - 1 >= 0 && shots[prevRow][prevCol - 1] == 0) {
-				*row = prevRow;
-				*col = prevCol - 1;
-				break;
-			}
-		case 3: // right
-			if (prevCol + 1 < MAP_SIZE && shots[prevRow][prevCol + 1] == 0) {
-				*row = prevRow;
-				*col = prevCol + 1;
-				break;
-			}
-		}
-
-		return;
-	}
-};
-
 
 
 /******************************************************************************
@@ -530,6 +448,8 @@ int CheckGameOver(int shots[MAP_SIZE][MAP_SIZE], int map[MAP_SIZE][MAP_SIZE])
 void GetMoveBot1(int shots[MAP_SIZE][MAP_SIZE], int* row, int* col);
 void GetMoveBot2(int shots[MAP_SIZE][MAP_SIZE], int* row, int* col);
 void GetMoveReasonableBot(int shots[MAP_SIZE][MAP_SIZE], int* row, int* col);
+bool lastMoveHit(int shots[MAP_SIZE][MAP_SIZE], int row, int col);
+bool lastMoveDestroyed(int shots[MAP_SIZE][MAP_SIZE], int row, int col);
 
 // Gets the input for one move from the human player (an alphabetic row and a numeric column)
 // This function converts both inputs to numeric values
@@ -539,10 +459,12 @@ void GetMoveHuman(int* row, int* col, int player)
 	int b = -1;
 	printf("Player %d: enter move [row/col]: ", player);
 	while (!(a >= 'A' && a <= 'Z')) {
-		scanf("%c", &a);
+		// scanf("%c", &a);
+		std::cin >> a;
 	}
 	while (!(b >= 0 && b <= 25)) {
-		scanf("%d", &b);
+		// scanf("%d", &b);
+		std::cin >> b;
 	}
 	*row = (int)(a - 'A');
 	*col = b;
@@ -579,7 +501,7 @@ void GetDisplayMapString(int shots1[MAP_SIZE][MAP_SIZE], int shots2[MAP_SIZE][MA
 	strcat(boardString, "\n");
 
 	for (i = 0; i < MAP_SIZE; i++) {
-		int len = strlen(boardString);
+		size_t len = strlen(boardString);
 		boardString[len] = (char)('A' + i);
 		boardString[len + 1] = '\0';
 		strcat(boardString, "|");
@@ -662,15 +584,15 @@ int PlayOneGame(int startingPlayer, int gameType)
 	player = startingPlayer;
 	gameOver = 0;
 
-	// Intialise GodBot
-	GodBot bot(shotsPlayer2);
+	// Create AiBot objectS
+	AiBot bot;
 
 	// Create random maps for each player
 	InitialiseRandomMap(mapPlayer1);
 	InitialiseRandomMap(mapPlayer2);
 
 	// Display the board if a human is playing
-	if (gameType != 3 && gameType != 4) {
+	if (gameType != 3 && gameType != 4) { //&& gameType != 4
 		GetDisplayMapString(shotsPlayer1, shotsPlayer2, player, displayBoardString);
 		printf("%s", displayBoardString);
 	}
@@ -720,8 +642,10 @@ int PlayOneGame(int startingPlayer, int gameType)
 				gameOver = CheckGameOver(shotsPlayer1, mapPlayer2);
 			}
 			else {
-				bot.getMoveGodBot(shotsPlayer2, &row, &col);
+				bot.getMove(shotsPlayer2, &row, &col);
 				FireShot(shotsPlayer2, mapPlayer1, row, col);
+				// check if move was hit
+				bot.addMove(row, col, lastMoveHit(shotsPlayer2, row, col), lastMoveDestroyed(shotsPlayer2, row, col));
 				gameOver = CheckGameOver(shotsPlayer2, mapPlayer1);
 			}
 		}
@@ -730,7 +654,7 @@ int PlayOneGame(int startingPlayer, int gameType)
 		if (!gameOver) {
 			player = 3 - player;
 		}
-		if (gameType != 3 && gameType != 4) {
+		if (gameType != 3 && gameType != 4) { // && gameType != 4
 			GetDisplayMapString(shotsPlayer1, shotsPlayer2, player, displayBoardString);
 			printf("%s", displayBoardString);
 		}
@@ -753,14 +677,16 @@ void PlayBattleships(void)
 	printf(" [3] = Bot1 vs. Bot2\n");
 	printf(" [4] = ResonableBot vs. GodBot\n");
 	printf("Choose game type: ");
-	scanf("%d", &gameType);
+	// scanf("%d", &gameType);
+	std::cin >> gameType;
 	numberOfGames = 1;
 	result = 0;
 
 	// If two bots are playing a tournament, let the user choose how many games
 	if (gameType == 3 || gameType == 4) {
 		printf("Number of games: ");
-		scanf("%d", &numberOfGames);
+		// scanf("%d", &numberOfGames);
+		cin >> numberOfGames;
 	}
 
 	// Set win counts to zero
@@ -872,6 +798,14 @@ void GetMoveReasonableBot(int shots[MAP_SIZE][MAP_SIZE], int* row, int* col) {
 
 	*row = rand_row;
 	*col = rand_col;
+}
+
+bool lastMoveHit(int shots[MAP_SIZE][MAP_SIZE], int row, int col) {
+	return shots[row][col] >= HIT;
+}
+
+bool lastMoveDestroyed(int shots[MAP_SIZE][MAP_SIZE], int row, int col) {
+	return shots[row][col] >= 2 * HIT;
 }
 
 

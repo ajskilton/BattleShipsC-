@@ -18,5 +18,13 @@
     <ClCompile Include="BattleShipsC++.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AiBot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AiBot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

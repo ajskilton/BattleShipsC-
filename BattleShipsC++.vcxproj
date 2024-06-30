@@ -128,7 +128,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AiBot.cpp" />
     <ClCompile Include="BattleShipsC++.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AiBot.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
